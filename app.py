@@ -1,11 +1,11 @@
-# app.py — Full Streamlit XBT Processing Application
+# app.py — XBT Processing Application
 
 import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-
+import seaborn as sns
 
 from scipy.interpolate import interp1d
 
@@ -17,7 +17,7 @@ import zipfile
 import re
 import os
 
-
+sns.set_style("darkgrid")
 
 # =====================================================
 # PAGE CONFIG
@@ -459,7 +459,43 @@ if st.button("Process XBT Data"):
                 loc='center'
             )
 
+            # -------------------------------------------------
+            # SAVE FIGURES
+            # -------------------------------------------------
+
+            fig_png = tmpdir / "temperature_profiles.png"
+            fig_svg = tmpdir / "temperature_profiles.svg"
+
+            fig.savefig(
+                fig_png,
+                dpi=300,
+                bbox_inches='tight'
+            )
+
+            fig.savefig(
+                fig_svg,
+                bbox_inches='tight'
+            )
+
             st.pyplot(fig)
+
+            # -------------------------------------------------
+            # FIGURE DOWNLOAD BUTTONS
+            # -------------------------------------------------
+
+            st.download_button(
+                label="Download Figure (PNG)",
+                data=fig_png.read_bytes(),
+                file_name="temperature_profiles.png",
+                mime="image/png"
+            )
+
+            st.download_button(
+                label="Download Figure (SVG)",
+                data=fig_svg.read_bytes(),
+                file_name="temperature_profiles.svg",
+                mime="image/svg+xml"
+            )
 
             # =================================================
             # INTERPOLATION
@@ -547,14 +583,14 @@ if st.button("Process XBT Data"):
                     final_df.head()
                 )
 
-                with open(output_csv, "rb") as file:
+                csv_bytes = output_csv.read_bytes()
 
-                    st.download_button(
-                        label=f"Download {interp_interval}m CSV",
-                        data=file,
-                        file_name=output_csv.name,
-                        mime="text/csv"
-                    )
+                st.download_button(
+                    label=f"Download {interp_interval}m CSV",
+                    data=csv_bytes,
+                    file_name=output_csv.name,
+                    mime="text/csv"
+                )
 
             # =================================================
             # EDF ZIP DOWNLOAD
@@ -574,17 +610,17 @@ if st.button("Process XBT Data"):
                         arcname=file.name
                     )
 
-            with open(zip_path, "rb") as file:
+            zip_bytes = zip_path.read_bytes()
 
-                st.download_button(
-                    label="Download EDF ZIP",
-                    data=file,
-                    file_name="edf_files.zip",
-                    mime="application/zip"
-                )
+            st.download_button(
+                label="Download EDF ZIP",
+                data=zip_bytes,
+                file_name="edf_files.zip",
+                mime="application/zip"
+            )
 
             st.success(
                 "Processing completed successfully"
             )
-            
 
+#end
