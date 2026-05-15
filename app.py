@@ -4,8 +4,9 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.interpolate import interp1d
+import matplotlib.gridspec as gridspec
 
+from scipy.interpolate import interp1d
 from pathlib import Path
 from datetime import datetime
 
@@ -18,7 +19,7 @@ import os
 # =====================================================
 
 st.set_page_config(
-    page_title="Interactive XBT QC",
+    page_title="Interactive XBT QC System",
     layout="wide"
 )
 
@@ -28,36 +29,36 @@ st.title("Interactive XBT QC Processing System")
 # README
 # =====================================================
 
-with st.expander("README / Instructions", expanded=True):
+with st.expander("README / User Instructions", expanded=True):
 
     st.markdown(
         """
 # Workflow
 
 1. Upload raw XBT files
-2. Generate EDF files
-3. Inspect QC plots
-4. Edit/remove spike values
+2. Generate EDF files + Initial QC plots
+3. Visually inspect spikes/spurious values
+4. Edit EDF tables manually
 5. Regenerate QC plots
-6. Download corrected EDF files
+6. Download corrected EDF ZIP
 
 ---
 
-# Editing Instructions
+# QC Procedure
 
-- Remove spike rows manually
-- Edit bad temperatures/depths
-- Changes are applied immediately
-- QC plots regenerate automatically
+- Remove spike rows
+- Edit wrong temperatures
+- Edit wrong depths
+- Tail trimming possible
+- Replot until QC is acceptable
 
 ---
 
 # Outputs
 
 - Corrected EDF ZIP
-- QC plots
-- 1m interpolation
-- 5m interpolation
+- QC Figures
+- Probe-to-probe consistency plots
 """
     )
 
@@ -70,9 +71,6 @@ if "edf_data" not in st.session_state:
 
 if "processed" not in st.session_state:
     st.session_state.processed = False
-
-if "plots_generated" not in st.session_state:
-    st.session_state.plots_generated = False
 
 if "downloads" not in st.session_state:
     st.session_state.downloads = {}
@@ -106,17 +104,15 @@ def corrector(df_raw):
 
     return df_raw
 
-
 # =====================================================
-# CREATE EDF
+# CREATE EDF DATA
 # =====================================================
 
 def create_edf(
     file_path,
     participants,
     cd,
-    ed,
-    idx
+    ed
 ):
 
     with open(file_path, "r") as file:
@@ -189,7 +185,6 @@ def create_edf(
 
     return metadata_dict, df
 
-
 # =====================================================
 # SAVE EDF
 # =====================================================
@@ -220,49 +215,94 @@ def save_edf(
         float_format="%.3f"
     )
 
-
 # =====================================================
-# QC PLOT
+# QC PLOTS
 # =====================================================
 
-def generate_plot(edf_data):
+def generate_qc_plot(edf_data):
 
-    fig, ax = plt.subplots(
-        figsize=(8, 10)
+    fig = plt.figure(
+        figsize=(14, 14)
     )
 
-    offset = 0
+    gs = gridspec.GridSpec(
+        2,
+        2,
+        width_ratios=[3, 1],
+        height_ratios=[1, 1],
+        hspace=0.16,
+        wspace=0.05
+    )
+
+    ax1 = fig.add_subplot(gs[0, :])
+    ax2 = fig.add_subplot(gs[1, 0])
+    ax3 = fig.add_subplot(gs[1, 1])
+
+    increm = 0
+    offset = 3
+
+    lines = []
+    labels = []
 
     for key in edf_data:
 
         df = edf_data[key]["df"]
 
-        ax.plot(
-            df["Temperature"] + offset,
+        line, = ax1.plot(
+            df["Temperature"] + increm,
             df["Depth"],
-            label=key
+            linewidth=1.5
         )
 
-        offset += 3
+        ax2.plot(
+            df["Temperature"],
+            df["Depth"],
+            linewidth=1.5
+        )
 
-    ax.invert_yaxis()
+        increm += offset
 
-    ax.set_xlabel(
+        lines.append(line)
+        labels.append(key)
+
+    ax1.invert_yaxis()
+    ax2.invert_yaxis()
+
+    ax1.set_title(
+        "Temperature Profiles"
+    )
+
+    ax2.set_title(
+        "Probe-to-Probe Consistency"
+    )
+
+    ax1.set_xlabel(
         "Temperature + Offset"
     )
 
-    ax.set_ylabel(
+    ax2.set_xlabel(
+        "Temperature"
+    )
+
+    ax1.set_ylabel(
         "Depth (m)"
     )
 
-    ax.set_title(
-        "QC Temperature Profiles"
+    ax2.set_ylabel(
+        "Depth (m)"
     )
 
-    ax.legend()
+    ax3.axis('off')
+
+    ax3.legend(
+        lines,
+        labels,
+        fontsize=10,
+        frameon=True,
+        loc='center'
+    )
 
     return fig
-
 
 # =====================================================
 # SIDEBAR INPUTS
@@ -304,7 +344,7 @@ uploaded_files = st.file_uploader(
 # PROCESS BUTTON
 # =====================================================
 
-if st.button("Process XBT Files"):
+if st.button("Generate EDF + Initial QC"):
 
     if not uploaded_files:
 
@@ -335,8 +375,7 @@ if st.button("Process XBT Files"):
                 tmp_path,
                 participants,
                 start_date,
-                end_date,
-                idx
+                end_date
             )
 
             file_key = f"xout_{idx}.edf"
@@ -352,18 +391,62 @@ if st.button("Process XBT Files"):
 
         st.session_state.processed = True
 
-        st.success(
-            "EDF files generated"
+# =====================================================
+# INITIAL QC PLOT
+# =====================================================
+
+if st.session_state.processed:
+
+    st.header("Initial QC Plots")
+
+    fig = generate_qc_plot(
+        st.session_state.edf_data
+    )
+
+    st.pyplot(fig)
+
+    # =============================================
+    # SAVE INITIAL FIGURE
+    # =============================================
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+
+        tmpdir = Path(tmpdir)
+
+        fig_path = (
+            tmpdir
+            / "initial_qc_plot.png"
         )
 
+        fig.savefig(
+            fig_path,
+            dpi=300,
+            bbox_inches='tight'
+        )
+
+        st.session_state.downloads[
+            "initial_plot"
+        ] = fig_path.read_bytes()
+
 # =====================================================
-# EDITABLE EDF TABLES
+# EDF EDITING
 # =====================================================
 
 if st.session_state.processed:
 
     st.header(
-        "Interactive QC Editing"
+        "Interactive EDF Editing"
+    )
+
+    st.markdown(
+        """
+### Instructions
+
+- Remove spike rows
+- Edit bad temperatures
+- Edit wrong depths
+- Remove noisy tail values
+"""
     )
 
     for key in st.session_state.edf_data:
@@ -381,6 +464,18 @@ if st.session_state.processed:
             key=f"editor_{key}"
         )
 
+        edited_df["Depth"] = pd.to_numeric(
+            edited_df["Depth"],
+            errors="coerce"
+        )
+
+        edited_df["Temperature"] = pd.to_numeric(
+            edited_df["Temperature"],
+            errors="coerce"
+        )
+
+        edited_df = edited_df.dropna()
+
         st.session_state.edf_data[
             key
         ]["df"] = edited_df
@@ -393,15 +488,15 @@ if st.button("Regenerate QC Plots"):
 
     if st.session_state.processed:
 
-        fig = generate_plot(
+        st.header(
+            "Corrected QC Plots"
+        )
+
+        fig2 = generate_qc_plot(
             st.session_state.edf_data
         )
 
-        st.pyplot(fig)
-
-        # =============================================
-        # SAVE FIGURE
-        # =============================================
+        st.pyplot(fig2)
 
         with tempfile.TemporaryDirectory() as tmpdir:
 
@@ -409,26 +504,24 @@ if st.button("Regenerate QC Plots"):
 
             fig_path = (
                 tmpdir
-                / "qc_plot.png"
+                / "corrected_qc_plot.png"
             )
 
-            fig.savefig(
+            fig2.savefig(
                 fig_path,
                 dpi=300,
                 bbox_inches='tight'
             )
 
             st.session_state.downloads[
-                "qc_plot"
+                "corrected_plot"
             ] = fig_path.read_bytes()
-
-        st.session_state.plots_generated = True
 
 # =====================================================
 # DOWNLOAD SECTION
 # =====================================================
 
-if st.session_state.plots_generated:
+if st.session_state.processed:
 
     st.header("Downloads")
 
@@ -502,14 +595,27 @@ if st.session_state.plots_generated:
 
     with col2:
 
-        st.download_button(
-            label="Download QC Figure",
-            data=st.session_state.downloads[
-                "qc_plot"
-            ],
-            file_name="qc_plot.png",
-            mime="image/png"
-        )
+        if "corrected_plot" in st.session_state.downloads:
+
+            st.download_button(
+                label="Download Corrected QC Plot",
+                data=st.session_state.downloads[
+                    "corrected_plot"
+                ],
+                file_name="corrected_qc_plot.png",
+                mime="image/png"
+            )
+
+        else:
+
+            st.download_button(
+                label="Download Initial QC Plot",
+                data=st.session_state.downloads[
+                    "initial_plot"
+                ],
+                file_name="initial_qc_plot.png",
+                mime="image/png"
+            )
 
 
 
