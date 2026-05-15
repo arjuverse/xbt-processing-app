@@ -1,6 +1,5 @@
 # app.py — Full Streamlit XBT Processing Application
 
-```python
 import streamlit as st
 import pandas as pd
 import numpy as np
