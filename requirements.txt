@@ -1,0 +1,5 @@
+Requirements
+			
+1. Streamlit - pip install streamlit
+2. Pandas, numpy, matplotlib, seaborn, scipy - pip install pandas numpy matplotlib seaborn scipy
+
