@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-import seaborn as sns
+
 
 from scipy.interpolate import interp1d
 
@@ -17,7 +17,7 @@ import zipfile
 import re
 import os
 
-sns.set_style("darkgrid")
+
 
 # =====================================================
 # PAGE CONFIG
