@@ -6,7 +6,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
-
 from scipy.interpolate import interp1d
 
 from pathlib import Path
@@ -14,10 +13,7 @@ from datetime import datetime
 
 import tempfile
 import zipfile
-import re
 import os
-
-
 
 # =====================================================
 # PAGE CONFIG
@@ -31,25 +27,121 @@ st.set_page_config(
 st.title("XBT Processing System")
 
 st.markdown(
-    "Upload raw XBT files to generate EDF, QC plots, and interpolated CSV outputs."
+    """
+Interactive XBT processing workflow for:
+
+- EDF generation
+- QC profile visualization
+- 1m interpolation
+- 5m interpolation
+"""
 )
+
+# =====================================================
+# README / USER GUIDE
+# =====================================================
+
+with st.expander("README / User Instructions", expanded=True):
+
+    st.markdown(
+        """
+# XBT Processing Application
+
+This application processes raw XBT files and generates:
+
+- EDF files
+- QC temperature profile plots
+- 1m interpolated CSV
+- 5m interpolated CSV
+
+---
+
+# Workflow
+
+## Step 1 — Enter Cruise Information
+
+Fill in:
+- Participants
+- Ship Name
+- Call Sign
+- Start Date
+- End Date
+
+---
+
+## Step 2 — Upload Raw XBT Files
+
+Upload all `.XBT` files together.
+
+Supported format:
+- MK21 / MK150 exported XBT raw files
+
+---
+
+## Step 3 — Click “Process XBT Data”
+
+The application will automatically:
+
+- generate EDF files
+- apply SST correction
+- create QC profile plots
+- generate:
+    - 1m interpolation
+    - 5m interpolation
+
+---
+
+# Downloads
+
+After processing, download:
+
+- EDF ZIP archive
+- QC figures
+- 1m CSV
+- 5m CSV
+
+---
+
+# Notes
+
+- EDF files are automatically named:
+    - xout_1.edf
+    - xout_2.edf
+    - etc.
+
+- Uploaded files are processed temporarily.
+- No permanent storage is used.
+
+---
+
+# Developed For
+
+Oceanographic XBT processing and quality control workflows.
+"""
+    )
+
+# =====================================================
+# SESSION STATE
+# =====================================================
+
+if "processed" not in st.session_state:
+    st.session_state.processed = False
+
+if "outputs" not in st.session_state:
+    st.session_state.outputs = {}
 
 # =====================================================
 # HELPER FUNCTIONS
 # =====================================================
-
-# -----------------------------------------------------
-# SEQUENTIAL EDF NAMING
-# -----------------------------------------------------
 
 def extractor(index):
 
     return str(index)
 
 
-# -----------------------------------------------------
+# =====================================================
 # SST CORRECTION
-# -----------------------------------------------------
+# =====================================================
 
 def corrector(df_raw):
 
@@ -58,7 +150,6 @@ def corrector(df_raw):
     )
 
     if df_raw.empty:
-
         return df_raw
 
     closest_depth_idx = (
@@ -78,24 +169,22 @@ def corrector(df_raw):
     return df_raw
 
 
-# -----------------------------------------------------
+# =====================================================
 # CREATE EDF
-# -----------------------------------------------------
+# =====================================================
 
-def create_edf(file_path,
-               participants,
-               cd,
-               ed,
-               output_dir,
-               idx):
+def create_edf(
+    file_path,
+    participants,
+    cd,
+    ed,
+    output_dir,
+    idx
+):
 
     file_name = os.path.basename(file_path)
 
     formatted_number = extractor(idx)
-
-    # -------------------------------------------------
-    # READ METADATA
-    # -------------------------------------------------
 
     with open(file_path, "r") as file:
 
@@ -117,18 +206,23 @@ def create_edf(file_path,
                 "%H%M%S"
             ).strftime("%H:%M:%S"),
 
-        "Sequence #": metadata[1].strip(),
+        "Sequence #":
+            metadata[1].strip(),
 
-        "Latitude": metadata[4].strip(),
+        "Latitude":
+            metadata[4].strip(),
 
-        "Longitude": metadata[5].strip(),
+        "Longitude":
+            metadata[5].strip(),
 
-        "Probe type": metadata[6].strip(),
+        "Probe type":
+            metadata[6].strip(),
 
         "Transect route dated from":
             f"{cd} to {ed}",
 
-        "Participants are": participants
+        "Participants are":
+            participants
     }
 
     metadata_text = (
@@ -138,10 +232,6 @@ def create_edf(file_path,
     for key, value in metadata_dict.items():
 
         metadata_text += f"{key}: {value}\n"
-
-    # -------------------------------------------------
-    # READ PROFILE DATA
-    # -------------------------------------------------
 
     df = pd.read_csv(
         file_path,
@@ -171,7 +261,6 @@ def create_edf(file_path,
     )
 
     if df.empty:
-
         return None
 
     df["Depth"] = df["Depth"].round(1)
@@ -179,10 +268,6 @@ def create_edf(file_path,
     df = corrector(df)
 
     df["Resistance"] = 9999.99
-
-    # -------------------------------------------------
-    # SAVE EDF
-    # -------------------------------------------------
 
     output_name = (
         output_dir
@@ -204,9 +289,9 @@ def create_edf(file_path,
     return output_name
 
 
-# -----------------------------------------------------
+# =====================================================
 # EDF READER
-# -----------------------------------------------------
+# =====================================================
 
 def read_edf(edf_file):
 
@@ -221,7 +306,6 @@ def read_edf(edf_file):
         if "Depth" in line and "Temperature" in line:
 
             header_idx = idx
-
             break
 
     df = pd.read_csv(
@@ -234,9 +318,9 @@ def read_edf(edf_file):
     return df
 
 
-# -----------------------------------------------------
+# =====================================================
 # EXTRACT METADATA
-# -----------------------------------------------------
+# =====================================================
 
 def extract_meta(filepath):
 
@@ -269,13 +353,15 @@ def extract_meta(filepath):
         '%m/%d/%Y %H:%M:%S'
     )
 
-    dt_string = dt.strftime('%Y-%m-%d %H:%M:%S')
+    dt_string = dt.strftime(
+        '%Y-%m-%d %H:%M:%S'
+    )
 
     return latitude, longitude, dt_string
 
 
 # =====================================================
-# USER INPUTS
+# SIDEBAR INPUTS
 # =====================================================
 
 st.sidebar.header("Cruise Information")
@@ -307,25 +393,8 @@ end_date = st.sidebar.text_input(
 uploaded_files = st.file_uploader(
     "Upload Raw XBT Files",
     accept_multiple_files=True,
-    type=["XBT"]
+    type=["xbt", "XBT"]
 )
-
-# =====================================================
-# PROCESSING
-# =====================================================
-
-# =====================================================
-# SESSION STATE STORAGE
-# =====================================================
-
-if "processed" not in st.session_state:
-
-    st.session_state.processed = False
-
-if "downloads" not in st.session_state:
-
-    st.session_state.downloads = {}
-
 
 # =====================================================
 # PROCESS BUTTON
@@ -351,19 +420,26 @@ if st.button("Process XBT Data"):
             edf_dir.mkdir()
             ivdata_dir.mkdir()
 
-            # -----------------------------------------
+            # =============================================
             # SAVE UPLOADED FILES
-            # -----------------------------------------
+            # =============================================
 
             for uploaded_file in uploaded_files:
 
-                save_path = raw_dir / uploaded_file.name
+                save_path = (
+                    raw_dir
+                    / uploaded_file.name
+                )
 
                 with open(save_path, "wb") as f:
 
-                    f.write(uploaded_file.getbuffer())
+                    f.write(
+                        uploaded_file.getbuffer()
+                    )
 
-            xbt_files = sorted(raw_dir.glob("*.XBT"))
+            xbt_files = sorted(
+                raw_dir.glob("*")
+            )
 
             edf_files = []
 
@@ -371,11 +447,14 @@ if st.button("Process XBT Data"):
                 f"Found {len(xbt_files)} XBT files"
             )
 
-            # -----------------------------------------
-            # GENERATE EDF FILES
-            # -----------------------------------------
+            # =============================================
+            # GENERATE EDF
+            # =============================================
 
-            for idx, file in enumerate(xbt_files, start=1):
+            for idx, file in enumerate(
+                xbt_files,
+                start=1
+            ):
 
                 edf_file = create_edf(
                     file,
@@ -394,15 +473,13 @@ if st.button("Process XBT Data"):
                 f"Generated {len(edf_files)} EDF files"
             )
 
-            # =================================================
-            # QC PLOTS
-            # =================================================
+            # =============================================
+            # QC FIGURES
+            # =============================================
 
-            colors = plt.cm.tab20(
-                np.linspace(0, 1, len(edf_files))
+            fig = plt.figure(
+                figsize=(12, 14)
             )
-
-            fig = plt.figure(figsize=(12, 14))
 
             gs = gridspec.GridSpec(
                 2,
@@ -423,7 +500,7 @@ if st.button("Process XBT Data"):
             lines = []
             labels = []
 
-            for i, file in enumerate(edf_files):
+            for file in edf_files:
 
                 df = read_edf(file)
 
@@ -476,12 +553,21 @@ if st.button("Process XBT Data"):
                 loc='center'
             )
 
-            # -------------------------------------------------
-            # SAVE FIGURES
-            # -------------------------------------------------
+            st.pyplot(fig)
 
-            fig_png = tmpdir / "temperature_profiles.png"
-            fig_svg = tmpdir / "temperature_profiles.svg"
+            # =============================================
+            # SAVE FIGURES
+            # =============================================
+
+            fig_png = (
+                tmpdir
+                / "temperature_profiles.png"
+            )
+
+            fig_svg = (
+                tmpdir
+                / "temperature_profiles.svg"
+            )
 
             fig.savefig(
                 fig_png,
@@ -494,33 +580,17 @@ if st.button("Process XBT Data"):
                 bbox_inches='tight'
             )
 
-            st.pyplot(fig)
+            st.session_state.outputs[
+                "fig_png"
+            ] = fig_png.read_bytes()
 
-            # -------------------------------------------------
-            # FIGURE DOWNLOAD BUTTONS
-            # -------------------------------------------------
+            st.session_state.outputs[
+                "fig_svg"
+            ] = fig_svg.read_bytes()
 
-            st.session_state.downloads["fig_png"] = fig_png.read_bytes()
-
-            st.download_button(
-                label="Download Figure (PNG)",
-                data=st.session_state.downloads["fig_png"],
-                file_name="temperature_profiles.png",
-                mime="image/png"
-            )
-
-            st.session_state.downloads["fig_svg"] = fig_svg.read_bytes()
-
-            st.download_button(
-                label="Download Figure (SVG)",
-                data=st.session_state.downloads["fig_svg"],
-                file_name="temperature_profiles.svg",
-                mime="image/svg+xml"
-            )
-
-            # =================================================
+            # =============================================
             # INTERPOLATION
-            # =================================================
+            # =============================================
 
             intervals = [1, 5]
 
@@ -541,7 +611,10 @@ if st.button("Process XBT Data"):
                     df = read_edf(file)
 
                     df = df.dropna(
-                        subset=['Depth', 'Temperature']
+                        subset=[
+                            'Depth',
+                            'Temperature'
+                        ]
                     )
 
                     f_interp = interp1d(
@@ -551,7 +624,9 @@ if st.button("Process XBT Data"):
                         fill_value=np.nan
                     )
 
-                    interpolated_temp = f_interp(int_depth)
+                    interpolated_temp = (
+                        f_interp(int_depth)
+                    )
 
                     row = [
 
@@ -577,8 +652,10 @@ if st.button("Process XBT Data"):
 
                     +
 
-                    [f'Dep_{int(d)}' for d in int_depth]
-
+                    [
+                        f'Dep_{int(d)}'
+                        for d in int_depth
+                    ]
                 )
 
                 final_df = pd.DataFrame(
@@ -604,23 +681,18 @@ if st.button("Process XBT Data"):
                     final_df.head()
                 )
 
-                csv_bytes = output_csv.read_bytes()
+                st.session_state.outputs[
+                    f"{interp_interval}m_csv"
+                ] = output_csv.read_bytes()
 
-                st.session_state.downloads[f"csv_{interp_interval}"] = csv_bytes
+            # =============================================
+            # EDF ZIP
+            # =============================================
 
-                st.download_button(
-                    label=f"Download {interp_interval}m CSV",
-                    data=st.session_state.downloads[f"csv_{interp_interval}"],
-                    file_name=output_csv.name,
-                    mime="text/csv",
-                    key=f"download_{interp_interval}m"
-                )
-
-            # =================================================
-            # EDF ZIP DOWNLOAD
-            # =================================================
-
-            zip_path = tmpdir / "edf_files.zip"
+            zip_path = (
+                tmpdir
+                / "edf_files.zip"
+            )
 
             with zipfile.ZipFile(
                 zip_path,
@@ -634,19 +706,63 @@ if st.button("Process XBT Data"):
                         arcname=file.name
                     )
 
-            zip_bytes = zip_path.read_bytes()
+            st.session_state.outputs[
+                "edf_zip"
+            ] = zip_path.read_bytes()
 
-            st.session_state.downloads["edf_zip"] = zip_bytes
-
-            st.download_button(
-                label="Download EDF ZIP",
-                data=st.session_state.downloads["edf_zip"],
-                file_name="edf_files.zip",
-                mime="application/zip"
-            )
+            st.session_state.processed = True
 
             st.success(
                 "Processing completed successfully"
             )
+
+# =====================================================
+# DOWNLOAD SECTION
+# =====================================================
+
+if st.session_state.processed:
+
+    st.header("Downloads")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        st.download_button(
+            label="Download EDF ZIP",
+            data=st.session_state.outputs["edf_zip"],
+            file_name="edf_files.zip",
+            mime="application/zip"
+        )
+
+        st.download_button(
+            label="Download 1m CSV",
+            data=st.session_state.outputs["1m_csv"],
+            file_name="1m_interpolated.csv",
+            mime="text/csv"
+        )
+
+        st.download_button(
+            label="Download 5m CSV",
+            data=st.session_state.outputs["5m_csv"],
+            file_name="5m_interpolated.csv",
+            mime="text/csv"
+        )
+
+    with col2:
+
+        st.download_button(
+            label="Download Figure PNG",
+            data=st.session_state.outputs["fig_png"],
+            file_name="temperature_profiles.png",
+            mime="image/png"
+        )
+
+        st.download_button(
+            label="Download Figure SVG",
+            data=st.session_state.outputs["fig_svg"],
+            file_name="temperature_profiles.svg",
+            mime="image/svg+xml"
+        )
 
 #end
