@@ -314,6 +314,23 @@ uploaded_files = st.file_uploader(
 # PROCESSING
 # =====================================================
 
+# =====================================================
+# SESSION STATE STORAGE
+# =====================================================
+
+if "processed" not in st.session_state:
+
+    st.session_state.processed = False
+
+if "downloads" not in st.session_state:
+
+    st.session_state.downloads = {}
+
+
+# =====================================================
+# PROCESS BUTTON
+# =====================================================
+
 if st.button("Process XBT Data"):
 
     if not uploaded_files:
@@ -483,16 +500,20 @@ if st.button("Process XBT Data"):
             # FIGURE DOWNLOAD BUTTONS
             # -------------------------------------------------
 
+            st.session_state.downloads["fig_png"] = fig_png.read_bytes()
+
             st.download_button(
                 label="Download Figure (PNG)",
-                data=fig_png.read_bytes(),
+                data=st.session_state.downloads["fig_png"],
                 file_name="temperature_profiles.png",
                 mime="image/png"
             )
 
+            st.session_state.downloads["fig_svg"] = fig_svg.read_bytes()
+
             st.download_button(
                 label="Download Figure (SVG)",
-                data=fig_svg.read_bytes(),
+                data=st.session_state.downloads["fig_svg"],
                 file_name="temperature_profiles.svg",
                 mime="image/svg+xml"
             )
@@ -585,11 +606,14 @@ if st.button("Process XBT Data"):
 
                 csv_bytes = output_csv.read_bytes()
 
+                st.session_state.downloads[f"csv_{interp_interval}"] = csv_bytes
+
                 st.download_button(
                     label=f"Download {interp_interval}m CSV",
-                    data=csv_bytes,
+                    data=st.session_state.downloads[f"csv_{interp_interval}"],
                     file_name=output_csv.name,
-                    mime="text/csv"
+                    mime="text/csv",
+                    key=f"download_{interp_interval}m"
                 )
 
             # =================================================
@@ -612,9 +636,11 @@ if st.button("Process XBT Data"):
 
             zip_bytes = zip_path.read_bytes()
 
+            st.session_state.downloads["edf_zip"] = zip_bytes
+
             st.download_button(
                 label="Download EDF ZIP",
-                data=zip_bytes,
+                data=st.session_state.downloads["edf_zip"],
                 file_name="edf_files.zip",
                 mime="application/zip"
             )
