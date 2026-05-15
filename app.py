@@ -576,6 +576,178 @@ if st.session_state.processed:
             "edf_zip"
         ] = zip_path.read_bytes()
 
+# =====================================================
+# 1m AND 5m INTERPOLATION
+# =====================================================
+
+if st.session_state.processed:
+
+    st.header("Interpolated Outputs")
+
+    intervals = [1, 5]
+
+    for interp_interval in intervals:
+
+        int_depth = np.arange(
+            0,
+            761,
+            interp_interval
+        )
+
+        all_rows = []
+
+        for key in st.session_state.edf_data:
+
+            metadata = st.session_state.edf_data[
+                key
+            ]["metadata"]
+
+            df = st.session_state.edf_data[
+                key
+            ]["df"]
+
+            df = df.dropna(
+                subset=[
+                    'Depth',
+                    'Temperature'
+                ]
+            )
+
+            df = df.sort_values(
+                by="Depth"
+            )
+
+            # =========================================
+            # INTERPOLATION
+            # =========================================
+
+            f_interp = interp1d(
+                df['Depth'],
+                df['Temperature'],
+                bounds_error=False,
+                fill_value=np.nan
+            )
+
+            interpolated_temp = (
+                f_interp(int_depth)
+            )
+
+            row = [
+
+                ship_name,
+                call_sign,
+                metadata["Latitude"],
+                metadata["Longitude"],
+                f"{metadata['Date of Launch']} "
+                f"{metadata['Time of Launch']}"
+
+            ] + interpolated_temp.tolist()
+
+            all_rows.append(row)
+
+        column_names = (
+
+            [
+                'Ship_Name',
+                'Call_Sign',
+                'Latitude',
+                'Longitude',
+                'Datetime'
+            ]
+
+            +
+
+            [
+                f'Dep_{int(d)}'
+                for d in int_depth
+            ]
+        )
+
+        final_df = pd.DataFrame(
+            all_rows,
+            columns=column_names
+        )
+
+        st.subheader(
+            f"{interp_interval}m Interpolated Data"
+        )
+
+        st.dataframe(
+            final_df.head()
+        )
+
+        # =========================================
+        # SAVE CSV TO SESSION
+        # =========================================
+
+        csv_data = final_df.to_csv(
+            index=False
+        ).encode('utf-8')
+
+        st.session_state.downloads[
+            f"{interp_interval}m_csv"
+        ] = csv_data
+
+
+# =====================================================
+# DOWNLOAD SECTION
+# =====================================================
+
+if st.session_state.processed:
+
+    st.header("Downloads")
+
+    # =============================================
+    # CREATE EDF ZIP
+    # =============================================
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+
+        tmpdir = Path(tmpdir)
+
+        edf_dir = tmpdir / "edf"
+
+        edf_dir.mkdir()
+
+        for key in st.session_state.edf_data:
+
+            metadata = st.session_state.edf_data[
+                key
+            ]["metadata"]
+
+            df = st.session_state.edf_data[
+                key
+            ]["df"]
+
+            output_path = edf_dir / key
+
+            save_edf(
+                metadata,
+                df,
+                output_path
+            )
+
+        zip_path = (
+            tmpdir
+            / "corrected_edf.zip"
+        )
+
+        with zipfile.ZipFile(
+            zip_path,
+            'w'
+        ) as zipf:
+
+            for file in edf_dir.glob("*.edf"):
+
+                zipf.write(
+                    file,
+                    arcname=file.name
+                )
+
+        st.session_state.downloads[
+            "edf_zip"
+        ] = zip_path.read_bytes()
+
     # =============================================
     # DOWNLOAD BUTTONS
     # =============================================
@@ -591,6 +763,24 @@ if st.session_state.processed:
             ],
             file_name="corrected_edf.zip",
             mime="application/zip"
+        )
+
+        st.download_button(
+            label="Download 1m CSV",
+            data=st.session_state.downloads[
+                "1m_csv"
+            ],
+            file_name="1m_interpolated.csv",
+            mime="text/csv"
+        )
+
+        st.download_button(
+            label="Download 5m CSV",
+            data=st.session_state.downloads[
+                "5m_csv"
+            ],
+            file_name="5m_interpolated.csv",
+            mime="text/csv"
         )
 
     with col2:
