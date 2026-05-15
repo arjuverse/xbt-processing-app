@@ -1,5 +1,6 @@
-Requirements
-			
-1. Streamlit - pip install streamlit
-2. Pandas, numpy, matplotlib, seaborn, scipy - pip install pandas numpy matplotlib seaborn scipy
-
+streamlit==1.45.1
+pandas==2.2.3
+numpy==2.2.5
+matplotlib==3.10.3
+seaborn==0.13.2
+scipy==1.15.3
