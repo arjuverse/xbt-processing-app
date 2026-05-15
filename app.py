@@ -35,7 +35,7 @@ with st.expander("README / User Instructions", expanded=True):
         """
 # Workflow
 
-1. Upload raw XBT files
+1. Upload raw .XBT files
 2. Generate EDF files + Initial QC plots
 3. Visually inspect spikes/spurious values
 4. Edit EDF tables manually
@@ -49,7 +49,7 @@ with st.expander("README / User Instructions", expanded=True):
 - Remove spike rows
 - Edit wrong temperatures
 - Edit wrong depths
-- Tail trimming possible
+- Remove bottom hit values
 - Replot until QC is acceptable
 
 ---
