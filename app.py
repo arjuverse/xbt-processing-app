@@ -329,7 +329,34 @@ start_date = st.sidebar.text_input(
 end_date = st.sidebar.text_input(
     "End Date"
 )
+# =====================================================
+# SAMPLE DATA DOWNLOADS
+# =====================================================
 
+st.header("Sample XBT Files")
+
+st.markdown(
+    "Download sample files for trial runs and testing."
+)
+
+sample_dir = Path("sample_data")
+
+if sample_dir.exists():
+
+    sample_files = list(
+        sample_dir.glob("*.XBT")
+    )
+
+    for sample_file in sample_files:
+
+        with open(sample_file, "rb") as f:
+
+            st.download_button(
+                label=f"Download {sample_file.name}",
+                data=f,
+                file_name=sample_file.name,
+                mime="application/octet-stream"
+            )
 # =====================================================
 # FILE UPLOAD
 # =====================================================
