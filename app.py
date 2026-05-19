@@ -35,30 +35,29 @@ with st.expander("README / User Instructions", expanded=True):
         """
 # Workflow
 
-1. Upload raw .XBT files
-2. Generate EDF files + Initial QC plots
-3. Visually inspect spikes/spurious values
-4. Edit EDF tables manually
-5. Regenerate QC plots
-6. Download corrected EDF ZIP
+1. Upload raw .XBT files.
+2. Generate EDF files + Initial QC plots.
+3. Visually inspect spikes/spurious values.
+4. Edit EDF tables manually.
+5. Regenerate QC plots.
+6. Download corrected EDF ZIP.
 
 ---
 
 # QC Procedure
 
-- Remove spike rows
-- Edit wrong temperatures
-- Edit wrong depths
-- Remove bottom hit values
-- Replot until QC is acceptable
+- Remove spiked values using a 0.2°C standard-deviation threshold applied to vertical temperature gradients.
+- Edit wrong temperature anomalies caused by the wire stretching or small leaks in the probe cable.
+- Remove bottom hit values.
+- Replot until QC is acceptable.
 
 ---
 
 # Outputs
 
-- Corrected EDF ZIP
-- QC Figures
-- Probe-to-probe consistency plots
+- Corrected EDF ZIP.
+- QC Figures.
+- Probe-to-probe consistency plots.
 """
     )
 
