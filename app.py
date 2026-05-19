@@ -337,7 +337,7 @@ st.header("Sample XBT Files")
 
 st.info(
     "New users can download sample XBT files below for trial processing."
-    
+)   
 st.markdown(
     "Download sample files for trial runs and testing."
 )
