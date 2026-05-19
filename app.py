@@ -329,17 +329,19 @@ start_date = st.sidebar.text_input(
 end_date = st.sidebar.text_input(
     "End Date"
 )
+
 # =====================================================
-# SAMPLE DATA DOWNLOADS
+# SAMPLE DATA DOWNLOAD
 # =====================================================
 
 st.header("Sample XBT Files")
 
 st.info(
     "New users can download sample XBT files below for trial processing."
-)   
+)
+
 st.markdown(
-    "Download sample files for trial runs and testing."
+    "Download sample XBT dataset for testing and learning the workflow."
 )
 
 sample_dir = Path("sample_data")
@@ -350,16 +352,37 @@ if sample_dir.exists():
         sample_dir.glob("*.XBT")
     )
 
-    for sample_file in sample_files:
+    if sample_files:
 
-        with open(sample_file, "rb") as f:
+        with tempfile.TemporaryDirectory() as tmpdir:
 
-            st.download_button(
-                label=f"Download {sample_file.name}",
-                data=f,
-                file_name=sample_file.name,
-                mime="application/octet-stream"
+            tmpdir = Path(tmpdir)
+
+            zip_path = (
+                tmpdir
+                / "sample_xbt_files.zip"
             )
+
+            with zipfile.ZipFile(
+                zip_path,
+                'w'
+            ) as zipf:
+
+                for sample_file in sample_files:
+
+                    zipf.write(
+                        sample_file,
+                        arcname=sample_file.name
+                    )
+
+            with open(zip_path, "rb") as f:
+
+                st.download_button(
+                    label="Download Sample XBT ZIP",
+                    data=f,
+                    file_name="sample_xbt_files.zip",
+                    mime="application/zip"
+                )
 # =====================================================
 # FILE UPLOAD
 # =====================================================
