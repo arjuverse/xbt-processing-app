@@ -6,7 +6,6 @@
 - Probe consistency
 - Interactive EDF editing
 - 1m and 5m interpolation
-- Streamlit deployment
 
 ## Workflow
 Upload → QC → Edit → Replot → Download
