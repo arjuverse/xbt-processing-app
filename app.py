@@ -17,6 +17,15 @@ import os
 # =====================================================
 # PAGE CONFIG
 # =====================================================
+st.warning(
+    """
+⚠️ If the app is inactive for some time,
+Streamlit Cloud may put it to sleep.
+
+If loading takes time, please wait
+30–60 seconds for automatic wake-up.
+"""
+)
 
 st.set_page_config(
     page_title="Interactive XBT QC System",
