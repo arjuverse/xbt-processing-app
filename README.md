@@ -20,7 +20,7 @@ If loading takes time, please wait
 30–60 seconds for automatic wake-up.
 
 ## To cite this software
-https://doi.org/10.5281/zenodo.20302792
+https://doi.org/10.5281/zenodo.21106303
 
-- [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20302792.svg)](https://doi.org/10.5281/zenodo.20302792)
+- [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21106303.svg)](https://doi.org/10.5281/zenodo.21106303)
 
