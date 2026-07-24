@@ -331,6 +331,30 @@ end_date = st.sidebar.text_input(
 )
 
 # =====================================================
+# DEVELOPER INFORMATION
+# =====================================================
+
+st.sidebar.markdown("---")
+
+st.sidebar.markdown(
+    """
+### 👨‍💻 Developers
+
+**Developer**  
+Arjun K. Sabu  
+📧 arjunksabu@gmail.com
+
+<br>
+
+**Python Source Code**  
+Sidharth Sudheer  
+📧 sidharthsudheer2000@gmail.com
+""",
+    unsafe_allow_html=True
+)
+
+
+# =====================================================
 # SAMPLE DATA DOWNLOAD
 # =====================================================
 
