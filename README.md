@@ -11,7 +11,7 @@
 Upload → QC → Edit → Replot → Download
 
 ## Streamlit App
-https://xbt-processing-app-mrhlmdd4x9rnrk7kcgn7pb.streamlit.app
+https://xbt-mk150.streamlit.app/
 
 - ⚠️ If the app is inactive for some time,
 Streamlit Cloud may put it to sleep.
